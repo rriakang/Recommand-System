@@ -99,3 +99,9 @@ with torch.no_grad():
     test_preds = model(test_user_ids, test_movie_ids).squeeze()
     test_loss = criterion(test_preds, test_ratings)
     print(f'Test Loss: {test_loss.item():.4f}')
+
+    # 실제 평점과 예측된 평점 비교
+    for i in range(10) :
+        print(f"User{test_user_ids[i].item()},Movie{test_movie_ids[i].item()},"
+              f"Actual Rating : {test_ratings[i].item():.2f}, predicted Rating : {test_preds[i].item():.2f}"
+              )
