@@ -14,6 +14,7 @@ movie_data.drop('genres', axis=1, inplace=True)
 user_movie_data = pd.merge(rating_data, movie_data,on= 'movieId')
 
 # userId와 MovieId에 인덱스 부여
+# one-hot-encoding 대신 cat.codes를 사용하여 사용자와 아이템에 대한 고유 인덱스를 생성
 user_movie_data['userId'] = user_movie_data['userId'].astype('category').cat.codes.values
 user_movie_data['movieId'] = user_movie_data['movieId'].astype('category').cat.codes.values
 
@@ -74,7 +75,12 @@ optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
 # 학습 과정
-num_epochs = 50
+# num_epochs = 30
+# num_epochs = 50
+# num_epochs = 100
+num_epochs = 150
+# num_epochs = 200
+# num_epochs = 300
 for epoch in range(num_epochs):
     model.train()
 
