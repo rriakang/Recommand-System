@@ -40,6 +40,51 @@ def load_all(test_numm=100):
             line = fd.readline() # 파일에서 다음 줄을 읽기  (다음줄이 없을때까지)
     return train_data,test_data,user_num,item_num,train_mat
 
-    
+# 1. 추천 시스템의 특성
+# 긍정 샘플: 사용자가 실제로 평가한 아이템 (예: 별 5개를 준 영화).
+# 부정 샘플: 사용자가 평가하지 않은 아이템 (예: 보지 않은 영화).
+# 이러한 부정 샘플을 통해 모델이 긍정 샘플 외에도 부정 샘플을 학습할 수 있도록 하여, 사용자가 좋아하지 않을 아이템을 분별하는 능력을 향상시킵니다.
 
-   
+# 사용자-아이템 쌍을 처리하고, 긍정 샘플에 대한 부정 샘플을 생성하여 훈련데이터 준비
+class NCFData(data.Dataset):
+    def __init__(self,features, num_item, train_mat=None, num_ng=0, is_training=None):
+        super(NCFData,self).__init__()
+
+        self.features_ps = features # 긍정 샘플(사용자-아이템 쌍)
+        self.num_item = num_item # 아이템의 총 개수
+        self.train_mat = train_mat # 사용자-아이템 상호작용 행렬
+        self.num_ng = num_ng # 부정 샘플의 개수
+        self.is_training = is_training #훈련 여부
+        self.labels = [0 for _ in range(len(features))] # 레이블 초기화 (모두 0으로)
+
+    def ng_sample(self):
+        assert self.is_training,'no need to sampling when testing'
+
+        self.features_ng = []
+        for x in self.features_ps:
+            u = x[0] # 사용자 ID
+            for t in range(self.num_ng): # 부정 샘플 수 만큼 반복
+                j = np.random.randint(self.num_item) # 랜덤 아이템 선택
+                while (u,j) in self.train_mat: # 이미 평가된 아이템인지 확인
+                    j = np.random.randint(self.num_item) # 다시선택
+                self.features_ng.append([u,j]) # 부정 샘플 추가
+        
+
+        labels_ps = [1 for _ in range (len(self.features_ps))] # 긍정 샘플 레이블 (1)
+        labels_ng = [0 for _ in range(len(self.features_ng))] # 부정 샘플 레이블 (0)
+
+        self.feature_fill = self.features_ps + self.features_ng # 긍정 + 부정 샘플 결합
+        self.labels_fill = labels_ng + labels_ps # 긍정 + 부정 레이블 결합
+    def __len__(self):
+        return (self.num_ng + 1) * len(self.labels)
+    
+    def __getitem__(self,idx):
+        features = self.feature_fill if self.is_training \
+                else self.features_ps
+        labels = self.feature_fill if self.is_training \
+                else self.labels
+        
+        user = features[idx][0]
+        item = features[idx][1]
+        label = labels[idx]
+        return user, item, label
